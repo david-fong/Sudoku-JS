@@ -1,0 +1,25 @@
+{
+  "name": "sudoku-js",
+  "version": "0.0.0",
+  "description": "A visualizer for the corresponding C++ implementation",
+  "keywords": [
+    "typing",
+    "game"
+  ],
+  "author": "David Fong (https://github.com/david-fong)",
+  "repository": "github:david-fong/Sudoku-JS",
+  "private": true,
+  "type": "module",
+  "files": [
+    "dist/",
+    "!dist/ts/",
+    "index.html",
+    "manifest.webmanifest"
+  ],
+  "exports": {},
+  "scripts": {},
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^3.9.3"
+  }
+}

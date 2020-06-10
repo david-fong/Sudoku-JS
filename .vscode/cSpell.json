@@ -1,0 +1,74 @@
+{
+    "name": "sudoku_root",
+    "description": "",
+    "language": "en-GB",
+    "enabledLanguageIds": [
+        "css",
+        "html",
+        "javascript",
+        "javascriptreact",
+        "json",
+        "jsonc",
+        "markdown",
+        "plaintext",
+        "scss",
+        "text",
+        "typescript",
+        "typescriptreact"
+    ],
+    "flagWords": [
+        "hte", "teh"
+    ],
+    "words": [
+        // Project-specific Terms:
+
+        // Programming terminology:
+        // (Functions and Variables)
+        "coord",
+        "dict",
+        "desc", "descs",
+        "dests",
+        "elem", "elems",
+        "minmax",
+        "mixins",
+        "nsps",
+        "retval",
+        "refs",
+        "supercall",
+        "spec",
+        "typeof",
+        "toplevel",
+        "unshift",
+
+        // Tooling and Programming Languages:
+        "API's",
+        "devtool",
+        "entrypoint",
+        "eslintrc's",
+        "heroku",
+        "javascript's",
+        "linting",
+        "markup",
+        "readmes",
+        "todos",
+        "transpiled",
+        "webpage",
+        "websockets",
+
+        // English:
+        "constraining",
+        "hitbox",
+        "lifestages",
+        "lifecycle",
+        "millis",
+        "ness",
+        "placeholder",
+        "presets",
+        "programmatically",
+        "screenshots",
+        "setup", "setups",
+        "spacebar",
+        "spellcheck", // <-- how ironic
+        "tradeoff"
+    ]
+}

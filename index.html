@@ -10,30 +10,43 @@
 
         <base href=".">
         <link rel="icon" href="assets/favicon.png">
-        <link href="assets/index.css" rel="stylesheet">
+        <link href="assets/style/index.css" rel="stylesheet">
         <meta name="og:title"  content="Sudoku JS"/>
         <meta name="og:description" content="A visualizer for the corresponding C++ implementation"/>
         <meta name="og:image"  content="./assets/images/social-preview.png"/>
     </head>
 
 
-    <body class="fill-parent">
-        <div id="host-grid"></div>
+    <body>
+        <div id="host-grid" class="center-contents"></div>
 
-        <select id="input-grid-order">
-            <option>2</option>
-            <option>3</option>
-            <option>4</option>
-            <option>5</option>
-        </select>
-        <select id="input-gen-path">
-            <option>row-major</option>
-            <option>block-col</option>
-        </select>
-        <select id="input-value-bias-per">
-            <option>none</option>
-            <option selected>row</option>
-        </select>
+        <!-- SOLVER OPTIONS -->
+        <div>
+            <select id="input-grid-order">
+                <option>2</option>
+                <option>3</option>
+                <option>4</option>
+                <option>5</option>
+            </select>
+            <select id="input-gen-path">
+                <option>row-major</option>
+                <option>block-col</option>
+            </select>
+            <select id="input-value-bias-per">
+                <option>none</option>
+                <option selected>row</option>
+            </select>
+        </div>
+
+        <!-- PLAYBACK STEP OPTIONS -->
+        <div>
+            <label>playback type<select id="sel-playback-type">
+                <option>continue</option>
+                <option>stop at backtrack</option>
+                <option>single-step</option>
+            </select></label>
+            <button id="btn-play"></button>
+        </div>
         <!--  -->
         <script defer src="dist/index.js"></script>
     </body>

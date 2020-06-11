@@ -14,7 +14,10 @@ class Tile {
         this.#solver = solver;
 
         this.baseElem = document.createElement("div");
-        this.baseElem.classList.add("tile");
+        this.baseElem.classList.add(
+            "center-contents",
+            "tile",
+        );
 
         this.valueElem = document.createElement("div");
         this.valueElem.classList.add("tile--value");
@@ -40,7 +43,9 @@ class Tile {
     }
     public set value(newValue: number) {
         this.#value = newValue;
-        this.valueElem.textContent = (newValue + 1).toString();
+        this.valueElem.textContent = (newValue === this.#solver.length)
+            ? "" // <-- Set to empty string for empty tile.
+            : (newValue + 1).toString();
     }
 }
 Object.freeze(Tile);
@@ -65,7 +70,6 @@ class Solver {
     private readonly traversalOrder: Array<number>;
     #valueBiasPer: Solver.ValueBiasPer;
 
-    #workDirection: Solver.TvsDirection;
     #workOpCount:   number;
     #workTvsIndex:  number;
 
@@ -83,6 +87,7 @@ class Solver {
         const grid: Array<Tile> = [];
         const gridElem = document.createElement("div");
         gridElem.classList.add("grid");
+        document.body.style.setProperty("--grid-order", this.order.toString());
         this.gridElem = gridElem;
 
         for (let i = 0; i < this.area; i++) {
@@ -98,66 +103,90 @@ class Solver {
 
         this.valueBiases = [];
         for (let i = 0; i < this.length; i++) {
-            this.valueBiases.push([]);
+            const iota: Array<number> = [];
+            for (let i = 0; i < this.length + 1; i++) {
+                iota.push(i);
+            }
+            this.valueBiases.push(iota);
         }
+        this.traversalOrder = [];
         this.genPath = initialGenPath;
         this.valueBiasPer = initialValueBiasPer;
     }
 
-    private clear(): void {
-        this.grid.forEach(Tile.prototype.clear);
+    public clear(): void {
+        this.grid.forEach((tile) => tile.clear());
         [this.rowSymbolOccMasks,
         this.colSymbolOccMasks,
         this.blkSymbolOccMasks].forEach((masksArr) => {
             for (let i = 0; i < this.length; i++) {
-                masksArr[i] = ~0;
+                masksArr[i] = 0;
             }
         });
-        this.#workDirection = Solver.TvsDirection.FORWARD;
+        switch (this.valueBiasPer) {
+        case Solver.ValueBiasPer.NONE:
+            this.valueBiases.forEach((rowBias) => {
+                rowBias.sort((a,b) => a - b);
+            });
+            break;
+        case Solver.ValueBiasPer.ROW:
+            this.valueBiases.forEach((rowBias) => {
+                rowBias.sort((a,b) => Math.random() - 0.5);
+                rowBias.splice(rowBias.findIndex((value) => value === this.length), 1);
+                rowBias.push(this.length);
+            });
+            break;
+        }
         this.#workOpCount   = 0;
         this.#workTvsIndex  = 0;
     }
 
-    public continueGenerateSolution(): void {
+    /**
+     * Automatically calls clear.
+     */
+    public continueGenerateSolution(continueTo: Solver.ContinueTo): void {
+        // TODO.impl switch behaviour based on the continueTo argument,
+        // or turn the argument into a field with getter and setter.
         while (this.#workTvsIndex < this.area) {
             const gridIndex = this.traversalOrder[this.#workTvsIndex];
-            this.#workDirection = this.setNextValid(gridIndex);
-            this.#workOpCount++;
-            if (this.#workDirection === Solver.TvsDirection.BACKWARD) {
-                --this.#workTvsIndex;
-            } else {
-                ++this.#workTvsIndex;
-            }
+            this.setNextValid(gridIndex);
         }
     }
 
-    private setNextValid(index: number): Solver.TvsDirection {
+    private setNextValid(index: number) {
         const tile = this.grid[index];
-        const rowBin = this.rowSymbolOccMasks[this.getRow(index)];
-        const colBin = this.colSymbolOccMasks[this.getCol(index)];
-        const blkBin = this.blkSymbolOccMasks[this.getBlk(index)];
-        if (!tile.isClear) {
+        const row = this.getRow(index);
+        const col = this.getCol(index);
+        const blk = this.getBlk(index);
+        if (!(tile.isClear)) {
             const eraseMask = ~(1 << tile.value);
-            this.rowSymbolOccMasks[this.getRow(index)] &= eraseMask;
-            this.colSymbolOccMasks[this.getCol(index)] &= eraseMask;
-            this.blkSymbolOccMasks[this.getBlk(index)] &= eraseMask;
+            this.rowSymbolOccMasks[row] &= eraseMask;
+            this.colSymbolOccMasks[col] &= eraseMask;
+            this.blkSymbolOccMasks[blk] &= eraseMask;
         }
-        const invalidBin = (rowBin | colBin | blkBin);
-        for (let biasIndex = tile.biasIndex; biasIndex < length; biasIndex++) {
+        const invalidBin = (
+            this.rowSymbolOccMasks[row] |
+            this.colSymbolOccMasks[col] |
+            this.blkSymbolOccMasks[blk]
+        );
+        for (let biasIndex = tile.biasIndex; biasIndex < this.length; biasIndex++) {
             const value = this.valueBiases[this.getRow(index)][biasIndex];
             const valueBit = 1 << value;
             if (!(invalidBin & valueBit)) {
                 // If a valid value is found for this tile:
-                this.rowSymbolOccMasks[this.getRow(index)] |= valueBit;
-                this.colSymbolOccMasks[this.getCol(index)] |= valueBit;
-                this.blkSymbolOccMasks[this.getBlk(index)] |= valueBit;
+                this.rowSymbolOccMasks[row] |= valueBit;
+                this.colSymbolOccMasks[col] |= valueBit;
+                this.blkSymbolOccMasks[blk] |= valueBit;
                 tile.value = value;
                 tile.biasIndex = (biasIndex + 1);
-                return Solver.TvsDirection.FORWARD;
+                ++this.#workTvsIndex;
+                this.#workOpCount++;
+                return;
             }
         }
         tile.clear();
-        return Solver.TvsDirection.BACKWARD;
+        --this.#workTvsIndex;
+        this.#workOpCount++;
     }
 
     public get genPath(): Solver.GenPath {
@@ -175,9 +204,9 @@ class Solver {
             const order = this.order;
             let i = 0;
             for (let blkCol = 0; blkCol < order; blkCol++) {
-                for (let row = 0; row < length; row++) {
+                for (let row = 0; row < this.length; row++) {
                     for (let bCol = 0; bCol < order; bCol++) {
-                        this.traversalOrder[i++] = (blkCol * order) + (row * length) + (bCol);
+                        this.traversalOrder[i++] = (blkCol * order) + (row * this.length) + (bCol);
                     }
                 }
             }
@@ -190,26 +219,14 @@ class Solver {
     }
     public set valueBiasPer(newValueBiasPer: Solver.ValueBiasPer) {
         this.#valueBiasPer = newValueBiasPer;
-        switch (newValueBiasPer) {
-        case Solver.ValueBiasPer.NONE:
-            this.valueBiases.forEach((rowBias) => {
-                rowBias.sort((a,b) => a - b);
-            });
-            break;
-        case Solver.ValueBiasPer.ROW:
-            this.valueBiases.forEach((rowBias) => {
-                rowBias.sort((a,b) => Math.random() - 0.5);
-            });
-            break;
-        }
     }
 
-    public getRow(index: number): number { return index / length; }
-    public getCol(index: number): number { return index % length; }
+    public getRow(index: number): number { return Math.floor(index / this.length); }
+    public getCol(index: number): number { return index % this.length; }
     public getBlk(index: number): number { return this.getBlk2(this.getRow(index), this.getCol(index)); }
     public getBlk2(row: number, col: number): number {
         const order = this.order;
-        return ((row / order) * order) + (col / order);
+        return (Math.floor(row / order) * order) + Math.floor(col / order);
     }
 }
 namespace Solver {
@@ -228,9 +245,10 @@ namespace Solver {
         NONE = "none",
         ROW  = "row"
     };
-    export const enum TvsDirection {
-        FORWARD  = "forward",
-        BACKWARD = "backward",
+    export const enum ContinueTo {
+        NEXT_VALUE_TEST = "to-next-value-test",
+        NEXT_BACKTRACK  = "to-next-backtrack",
+        COMPLETION      = "to-completion",
     };
 }
 Object.freeze(Solver);
@@ -247,29 +265,51 @@ class Gui {
         genPath:      HTMLSelectElement;
         valueBiasPer: HTMLSelectElement;
     }>;
+    public readonly pb: Readonly<{
+        type: HTMLSelectElement;
+        play: HTMLButtonElement;
+    }>;
     private readonly host: Readonly<{
         grid: HTMLElement;
     }>;
 
     public constructor() {
-        const gridOrder = document.getElementById("input-grid-order") as HTMLSelectElement;
-        gridOrder.selectedIndex = Number(localStorage.getItem("grid-order")) || 2;
-        gridOrder.addEventListener("change", (ev) => {
-            localStorage.setItem("grid-order", gridOrder.value)
-        });
-
-        const genPath = document.getElementById("input-gen-path") as HTMLSelectElement;
-        genPath.selectedIndex = Array.from(genPath.options).findIndex((opt) => {
-            return opt.value === Solver.GenPathDefaults[gridOrder.value as keyof typeof Solver.GenPathDefaults];
-        });
-
-        const valueBiasPer = document.getElementById("input-value-bias-per");
-
-        this.in = Object.freeze(<Gui["in"]>{
-            gridOrder,
-            genPath,
-            valueBiasPer,
-        });
+        {
+            const gridOrder = document.getElementById("input-grid-order") as HTMLSelectElement;
+            gridOrder.selectedIndex = Array.from(gridOrder.options).findIndex((opt) => {
+                return opt.value === (localStorage.getItem("grid-order") ?? "3");
+            });
+            gridOrder.dispatchEvent(new Event("change"));
+            gridOrder.addEventListener("change", (ev) => {
+                localStorage.setItem("grid-order", gridOrder.value);
+            });
+            const genPath = document.getElementById("input-gen-path") as HTMLSelectElement;
+            genPath.selectedIndex = Array.from(genPath.options).findIndex((opt) => {
+                return opt.value === Solver.GenPathDefaults[gridOrder.value as keyof typeof Solver.GenPathDefaults];
+            });
+            const valueBiasPer = document.getElementById("input-value-bias-per");
+            this.in = Object.freeze(<Gui["in"]>{
+                gridOrder,
+                genPath,
+                valueBiasPer,
+            });
+        } {
+            // TODO.impl change the behaviour of the play button based on state and playback type.
+            const type = document.getElementById("sel-playback-type") as HTMLSelectElement;
+            const play = document.getElementById("btn-play") as HTMLButtonElement;
+            play.addEventListener("click", (ev) => {
+                this.solver.continueGenerateSolution(Solver.ContinueTo.COMPLETION);
+            });
+            this.pb = Object.freeze(<Gui["pb"]>{
+                type,
+                play,
+            });
+        }
+        (Object.keys(this.in) as Array<keyof Gui["in"]>).forEach((key) => {
+            this.in[key].addEventListener("change", (ev) => {
+                this.setupSolver();
+            });
+        })
         this.host = Object.freeze(<Gui["host"]>{
             grid: document.getElementById("host-grid"),
         });
@@ -282,8 +322,9 @@ class Gui {
         const valueBiasPer = this.in.valueBiasPer.value as Solver.ValueBiasPer;
 
         if (!this.solver || order !== this.solver.order) {
-            this.solver.gridElem.remove();
+            this.solver?.gridElem.remove();
             this.#solver = new Solver(order, genPath, valueBiasPer);
+            this.solver.clear();
             this.host.grid.appendChild(this.solver.gridElem);
 
         } else if (genPath !== this.solver.genPath) {
@@ -297,3 +338,5 @@ class Gui {
 }
 Object.freeze(Gui);
 Object.freeze(Gui.prototype);
+
+const gui = new Gui();

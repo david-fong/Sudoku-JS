@@ -1,5 +1,9 @@
 {
     "compilerOptions": {
+        "outDir": "./dist",
+        "rootDir": "./src",
+        "baseUrl": "./src",
+
         // Project References:
         "composite": true,
 

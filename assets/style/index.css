@@ -1,10 +1,32 @@
 @import "./root.css";
 @import "./utils.css";
 
+body {
+    /* --grid-order is set programmatically.*/
+    --grid-length: calc(var(--grid-order)  * var(--grid-order));
+    --grid-area:   calc(var(--grid-length) * var(--grid-length));
+}
+
 .tile {
 }
 .tile--char {
 }
 
+#grid-host {
+    display: grid;
+}
 .grid {
+    --block-spacing: 0.2em;
+    padding: var(--block-spacing);
+    display: grid;
+    grid-template-columns: repeat(var(--grid-order), min-content);
+    gap: var(--block-spacing);
+}
+.grid--block {
+    --track-width: 2em;
+    border-radius: 0.5em;
+    border: 0.1em solid grey;
+    display: grid;
+    grid-template-columns: repeat(var(--grid-order), var(--track-width));
+    grid-auto-rows: var(--track-width);
 }

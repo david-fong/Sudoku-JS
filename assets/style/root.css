@@ -15,10 +15,7 @@ html {
 
 body {
     margin: 0;
-    font-family:
-        "Trebuchet MS",
-        "Lucida Sans Unicode",
-        ;
+    font-family:    monospace;
     color:          var(--colour-mainFg);
     text-align:     center;
     transition:     filter 0.5s ease-in-out;
@@ -27,7 +24,7 @@ body {
 :disabled {
     cursor:         not-allowed;
 }
-
+/*
 * {
     scrollbar-width: thin;
     scrollbar-color: transparent;
@@ -47,7 +44,7 @@ body {
 }
 ::-webkit-scrollbar-corner {
     visibility:     hidden;
-}
+} */
 
 table {
     border-spacing: 0;
@@ -56,7 +53,6 @@ button {
     font:       inherit;
     color:      inherit;
     padding:    0px;
-    background-color: var(--colour-tileBg);
 }
 button:disabled {
     opacity:    0.7;

@@ -90,11 +90,18 @@ class Solver {
         document.body.style.setProperty("--grid-order", this.order.toString());
         this.gridElem = gridElem;
 
+        {const blockElems = [];
+        for (let i = 0; i < this.length; i++) {
+            const blockElem = document.createElement("div");
+            blockElem.classList.add("grid--block");
+            blockElems.push(blockElem);
+            gridElem.appendChild(blockElem);
+        }
         for (let i = 0; i < this.area; i++) {
             const tile = new Tile(this);
             grid.push(tile);
-            gridElem.appendChild(tile.baseElem);
-        }
+            blockElems[this.getBlk(i)].appendChild(tile.baseElem);
+        }}
         this.grid = Object.freeze(grid);
 
         ["row","col","blk"].forEach((type) => {
@@ -142,18 +149,21 @@ class Solver {
     }
 
     /**
-     * Automatically calls clear.
+     * Tests a new value at the current tile in the traversal path.
      */
-    public continueGenerateSolution(continueTo: Solver.ContinueTo): void {
-        // TODO.impl switch behaviour based on the continueTo argument,
-        // or turn the argument into a field with getter and setter.
-        while (this.#workTvsIndex < this.area) {
+    public singleStep(): Solver.TvsDirection | undefined {
+        if (!this.isDone) {
             const gridIndex = this.traversalOrder[this.#workTvsIndex];
-            this.setNextValid(gridIndex);
+            return this.setNextValid(gridIndex);
         }
+        return undefined;
     }
 
-    private setNextValid(index: number) {
+    public get isDone(): boolean {
+        return this.#workTvsIndex === this.area;
+    }
+
+    private setNextValid(index: number): Solver.TvsDirection {
         const tile = this.grid[index];
         const row = this.getRow(index);
         const col = this.getCol(index);
@@ -181,12 +191,13 @@ class Solver {
                 tile.biasIndex = (biasIndex + 1);
                 ++this.#workTvsIndex;
                 this.#workOpCount++;
-                return;
+                return Solver.TvsDirection.FORWARD;
             }
         }
         tile.clear();
         --this.#workTvsIndex;
         this.#workOpCount++;
+        return Solver.TvsDirection.BACKWARD;
     }
 
     public get genPath(): Solver.GenPath {
@@ -243,12 +254,11 @@ namespace Solver {
     });
     export const enum ValueBiasPer {
         NONE = "none",
-        ROW  = "row"
+        ROW  = "row",
     };
-    export const enum ContinueTo {
-        NEXT_VALUE_TEST = "to-next-value-test",
-        NEXT_BACKTRACK  = "to-next-backtrack",
-        COMPLETION      = "to-completion",
+    export const enum TvsDirection {
+        FORWARD  = "forward",
+        BACKWARD = "backward",
     };
 }
 Object.freeze(Solver);
@@ -265,58 +275,125 @@ class Gui {
         genPath:      HTMLSelectElement;
         valueBiasPer: HTMLSelectElement;
     }>;
-    public readonly pb: Readonly<{
-        type: HTMLSelectElement;
-        play: HTMLButtonElement;
-    }>;
     private readonly host: Readonly<{
         grid: HTMLElement;
     }>;
 
     public constructor() {
-        {
-            const gridOrder = document.getElementById("input-grid-order") as HTMLSelectElement;
-            gridOrder.selectedIndex = Array.from(gridOrder.options).findIndex((opt) => {
-                return opt.value === (localStorage.getItem("grid-order") ?? "3");
-            });
-            gridOrder.dispatchEvent(new Event("change"));
-            gridOrder.addEventListener("change", (ev) => {
-                localStorage.setItem("grid-order", gridOrder.value);
-            });
-            const genPath = document.getElementById("input-gen-path") as HTMLSelectElement;
-            genPath.selectedIndex = Array.from(genPath.options).findIndex((opt) => {
-                return opt.value === Solver.GenPathDefaults[gridOrder.value as keyof typeof Solver.GenPathDefaults];
-            });
-            const valueBiasPer = document.getElementById("input-value-bias-per");
-            this.in = Object.freeze(<Gui["in"]>{
-                gridOrder,
-                genPath,
-                valueBiasPer,
-            });
-        } {
-            // TODO.impl change the behaviour of the play button based on state and playback type.
-            const type = document.getElementById("sel-playback-type") as HTMLSelectElement;
-            const play = document.getElementById("btn-play") as HTMLButtonElement;
-            play.addEventListener("click", (ev) => {
-                this.solver.continueGenerateSolution(Solver.ContinueTo.COMPLETION);
-            });
-            this.pb = Object.freeze(<Gui["pb"]>{
-                type,
-                play,
-            });
-        }
+        this._initSolverParams();
+        this._initPlaybackControls();
         (Object.keys(this.in) as Array<keyof Gui["in"]>).forEach((key) => {
             this.in[key].addEventListener("change", (ev) => {
-                this.setupSolver();
+                this.resetSolver();
             });
         })
         this.host = Object.freeze(<Gui["host"]>{
             grid: document.getElementById("host-grid"),
         });
-        this.setupSolver();
+        this.resetSolver();
     }
 
-    public setupSolver(): void {
+    private _initSolverParams(): void {
+        const gridOrder = document.getElementById("sel-grid-order") as HTMLSelectElement;
+        gridOrder.selectedIndex = Array.from(gridOrder.options).findIndex((opt) => {
+            return opt.value === (localStorage.getItem("grid-order") ?? "3");
+        });
+        gridOrder.dispatchEvent(new Event("change"));
+        gridOrder.addEventListener("change", (ev) => {
+            localStorage.setItem("grid-order", gridOrder.value);
+        });
+        const genPath = document.getElementById("sel-gen-path") as HTMLSelectElement;
+        genPath.selectedIndex = Array.from(genPath.options).findIndex((opt) => {
+            return opt.value === Solver.GenPathDefaults[gridOrder.value as keyof typeof Solver.GenPathDefaults];
+        });
+        const valueBiasPer = document.getElementById("sel-value-bias-per");
+        (this.in as Gui["in"]) = Object.freeze(<Gui["in"]>{
+            gridOrder,
+            genPath,
+            valueBiasPer,
+        });
+    }
+
+    private _initPlaybackControls(): void {
+        const startOver = document.getElementById("btn-playback-value-start-over") as HTMLButtonElement;
+        const valueTest = document.getElementById("btn-playback-value-test") as HTMLButtonElement;
+        const backtrack = document.getElementById("btn-playback-backtrack")  as HTMLButtonElement;
+        const playPause = document.getElementById("btn-playback-play-pause") as HTMLButtonElement;
+
+        const uiNotifyDoneGenerating = (
+            workerFunc: (() => boolean) = (() => true),
+        ) => {
+            return () => {
+                if (workerFunc()) {
+                    valueTest.disabled = true;
+                    backtrack.disabled = true;
+                    playPause.disabled = true;
+                }
+            };
+        };
+        startOver.addEventListener("click", (ev) => {
+            if (setIntervalId !== undefined) {
+                stopPlaying();
+            }
+            this.solver.clear();
+            valueTest.disabled = false;
+            backtrack.disabled = false;
+            playPause.disabled = false;
+        });
+        valueTest.addEventListener("click", uiNotifyDoneGenerating(() => {
+            if (this.solver.singleStep() === undefined) {
+                return true;
+            }
+            return false;
+        }));
+        backtrack.addEventListener("click", uiNotifyDoneGenerating(() => {
+            let lastDirection: Solver.TvsDirection | undefined = undefined;
+            while ((lastDirection = this.solver.singleStep()) === Solver.TvsDirection.FORWARD) { }
+            return lastDirection === undefined;
+        }));
+
+        const speedCoarse = document.getElementById("slider-playback-speed-coarse") as HTMLInputElement;
+        const speedFine   = document.getElementById("slider-playback-speed-fine")   as HTMLInputElement;
+
+        let setIntervalId: number | undefined = undefined;
+        const stopPlaying = () => {
+            playPause.textContent = "play";
+            valueTest.disabled = false;
+            backtrack.disabled = false;
+            if (setIntervalId) {
+                clearInterval(setIntervalId);
+                setIntervalId = undefined;
+            }
+        };
+        const startPlaying = () => {
+            playPause.textContent = "pause";
+            valueTest.disabled = true;
+            backtrack.disabled = true;
+            setIntervalId = setInterval(() => {
+                if (!this.solver.singleStep()) {
+                    stopPlaying();
+                    uiNotifyDoneGenerating()();
+                }
+            }, 1000 / (Number(speedCoarse.value) + Number(speedFine.value)));
+        };
+        playPause.addEventListener("click", (ev) => {
+            if (setIntervalId === undefined) {
+                startPlaying();
+            } else {
+                stopPlaying();
+            }
+        });
+        [speedCoarse,speedFine].forEach((slider) => {
+            slider.addEventListener("change", (ev) => {
+                if (setIntervalId !== undefined) {
+                    stopPlaying();
+                    startPlaying();
+                }
+            });
+        });
+    }
+
+    public resetSolver(): void {
         const order = Number(this.in.gridOrder.selectedOptions.item(0)!.value);
         const genPath = this.in.genPath.value as Solver.GenPath;
         const valueBiasPer = this.in.valueBiasPer.value as Solver.ValueBiasPer;
@@ -327,9 +404,15 @@ class Gui {
             this.solver.clear();
             this.host.grid.appendChild(this.solver.gridElem);
 
-        } else if (genPath !== this.solver.genPath) {
-            this.solver.genPath = genPath;
+        } else {
+            if (genPath !== this.solver.genPath) {
+                this.solver.genPath = genPath;
+            }
+            if (valueBiasPer !== this.solver.valueBiasPer) {
+                this.solver.valueBiasPer = valueBiasPer;
+            }
         }
+        this.solver.clear();
     }
 
     public get solver(): Solver {

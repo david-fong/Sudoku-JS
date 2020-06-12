@@ -11,28 +11,28 @@
         <base href=".">
         <link rel="icon" href="assets/favicon.png">
         <link href="assets/style/index.css" rel="stylesheet">
-        <meta name="og:title"  content="Sudoku JS"/>
+        <meta name="og:title"       content="Sudoku JS"/>
         <meta name="og:description" content="A visualizer for the corresponding C++ implementation"/>
-        <meta name="og:image"  content="./assets/images/social-preview.png"/>
+        <meta name="og:image"       content="./assets/images/social-preview.png"/>
     </head>
 
 
     <body>
-        <div id="host-grid" class="center-contents"></div>
-
         <!-- SOLVER OPTIONS -->
         <div>
-            <select id="input-grid-order">
+            <select id="sel-grid-order">
+                <!-- last used is persisted in local storage -->
                 <option>2</option>
                 <option>3</option>
                 <option>4</option>
                 <option>5</option>
             </select>
-            <select id="input-gen-path">
+            <select id="sel-gen-path">
+                <!-- best value is automatically chosen base on grid order -->
                 <option>row-major</option>
                 <option>block-col</option>
             </select>
-            <select id="input-value-bias-per">
+            <select id="sel-value-bias-per">
                 <option>none</option>
                 <option selected>row</option>
             </select>
@@ -40,13 +40,26 @@
 
         <!-- PLAYBACK STEP OPTIONS -->
         <div>
-            <label>playback type<select id="sel-playback-type">
-                <option>continue</option>
-                <option>stop at backtrack</option>
-                <option>single-step</option>
-            </select></label>
-            <button id="btn-play"></button>
+            <button id="btn-playback-value-start-over">start over</button>
+            <button id="btn-playback-value-test">value test</button>
+            <button id="btn-playback-backtrack">backtrack</button>
+            <button id="btn-playback-play-pause">play</button>
+            <fieldset>
+                <legend>play/pause speed (Hz)</legend>
+                <label>
+                    coarse:
+                    <input id="slider-playback-speed-coarse" type="range" min="1" max="84" value="10"/>
+                </label>
+                <label>
+                    fine:
+                    <input id="slider-playback-speed-fine" type="range" min="0" max="16" value="0"/>
+                </label>
+            </fieldset>
         </div>
+
+        <!-- SUDOKU GRID -->
+        <div id="host-grid" class="center-contents"></div>
+
         <!--  -->
         <script defer src="dist/index.js"></script>
     </body>

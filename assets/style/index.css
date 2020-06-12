@@ -5,8 +5,6 @@ body {
     /* --grid-order is set programmatically.*/
     --grid-length: calc(var(--grid-order)  * var(--grid-order));
     --grid-area:   calc(var(--grid-length) * var(--grid-length));
-
-    font-family: monospace;
 }
 
 .tile {
@@ -18,7 +16,17 @@ body {
     display: grid;
 }
 .grid {
+    --block-spacing: 0.2em;
+    padding: var(--block-spacing);
     display: grid;
-    grid-template-columns: repeat(var(--grid-length), 2em);
-    grid-auto-rows: 2em;
+    grid-template-columns: repeat(var(--grid-order), min-content);
+    gap: var(--block-spacing);
+}
+.grid--block {
+    --track-width: 2em;
+    border-radius: 0.5em;
+    border: 0.1em solid grey;
+    display: grid;
+    grid-template-columns: repeat(var(--grid-order), var(--track-width));
+    grid-auto-rows: var(--track-width);
 }

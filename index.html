@@ -14,6 +14,10 @@
         <meta name="og:title"       content="Sudoku JS"/>
         <meta name="og:description" content="A visualizer for the corresponding C++ implementation"/>
         <meta name="og:image"       content="./assets/images/social-preview.png"/>
+
+        <link rel="preload" as="script" href="dist/Tile.js"/>
+        <link rel="preload" as="script" href="dist/Solver.js"/>
+        <link rel="preload" as="script" href="dist/index.js"/>
     </head>
 
 
@@ -61,6 +65,8 @@
         <div id="host-grid" class="center-contents"></div>
 
         <!--  -->
+        <script defer src="dist/Tile.js"></script>
+        <script defer src="dist/Solver.js"></script>
         <script defer src="dist/index.js"></script>
     </body>
 </html>

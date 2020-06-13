@@ -1,13 +1,21 @@
 @import "./root.css";
 @import "./utils.css";
 
+:root {
+    --colour-tile-bd: #cdcdcd;
+    --colour-tile-bg: white;
+    --colour-main-bg: whitesmoke;
+}
+
 body {
     /* --grid-order is set programmatically.*/
     --grid-length: calc(var(--grid-order)  * var(--grid-order));
     --grid-area:   calc(var(--grid-length) * var(--grid-length));
+    background-color: var(--colour-main-bg);
 }
 
 .tile {
+    background-color: var(--colour-tile-bg);
 }
 .tile--char {
 }
@@ -16,7 +24,7 @@ body {
     display: grid;
 }
 .grid {
-    --block-spacing: 0.2em;
+    --block-spacing: 0.4em;
     padding: var(--block-spacing);
     display: grid;
     grid-template-columns: repeat(var(--grid-order), min-content);
@@ -24,9 +32,16 @@ body {
 }
 .grid--block {
     --track-width: 2em;
+    --border-width: 2px;
+
+    contain: strict;
     border-radius: 0.5em;
-    border: 0.1em solid grey;
+    border: var(--border-width) solid var(--colour-tile-bd);
+
+    gap: var(--border-width);
     display: grid;
     grid-template-columns: repeat(var(--grid-order), var(--track-width));
     grid-auto-rows: var(--track-width);
+
+    background-color: var(--colour-tile-bd);
 }

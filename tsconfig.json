@@ -10,7 +10,7 @@
         // Compiler Behaviour:
         "moduleResolution": "node",
         "forceConsistentCasingInFileNames": true,
-        "importHelpers": true,
+        //"importHelpers": true,
         "skipLibCheck": true, // time-saving measure.
 
         // Language Settings:

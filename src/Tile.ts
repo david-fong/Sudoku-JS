@@ -45,7 +45,7 @@ class Tile {
         this.#value = newValue;
         this.valueElem.textContent = (newValue === this.#solver.length)
             ? "" // <-- Set to empty string for empty tile.
-            : (newValue + 1).toString();
+            : "1234567890ABCDEFGHIJKLMNOPQRSTUVYXYZ"[newValue];
     }
 }
 Object.freeze(Tile);
